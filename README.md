@@ -1,2 +1,2 @@
 # hello-world
-simple program to test github - branch
+simple program to test github
