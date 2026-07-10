@@ -74,6 +74,40 @@ See [`iptv/channel-guide.txt`](iptv/channel-guide.txt) or the [web channel guide
 - India TV, Times Now Navbharat, Bharat Samachar, Good News Today
 - Sudarshan News, News 24, Sansad TV
 
+## Upload to Google Drive
+
+Google Drive requires a one-time credentials setup. After that, upload all playlists with:
+
+```bash
+pip install -r requirements-drive.txt
+export GOOGLE_DRIVE_FOLDER_ID="<your-folder-id>"
+export GOOGLE_APPLICATION_CREDENTIALS="credentials/service-account.json"
+python3 scripts/upload-to-drive.py
+```
+
+### Setup (service account — recommended)
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → enable **Google Drive API**
+2. **Credentials** → **Create credentials** → **Service account** → download JSON key
+3. Save the key as `credentials/service-account.json` (this path is gitignored)
+4. In [Google Drive](https://drive.google.com), create a folder (e.g. "IPTV News")
+5. Share that folder with the service account email from the JSON (`client_email`), as **Editor**
+6. Copy the folder ID from the URL: `https://drive.google.com/drive/folders/FOLDER_ID_HERE`
+7. Run the upload commands above
+
+### Alternative: OAuth sign-in
+
+1. Create an **OAuth Desktop** client in Google Cloud Console
+2. Download `credentials/oauth-client.json`
+3. Run:
+   ```bash
+   export GOOGLE_OAUTH_CLIENT_SECRET="credentials/oauth-client.json"
+   python3 scripts/upload-to-drive.py
+   ```
+4. Sign in via the browser when prompted (token saved to `credentials/drive-token.json`)
+
+Files uploaded by default: `hindi-news.m3u`, `english-news.m3u`, `all-news.m3u`, `channel-guide.txt`
+
 ## Refresh playlists
 
 ```bash

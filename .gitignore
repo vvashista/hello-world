@@ -1,1 +1,3 @@
 iptv/.start-channel.m3u
+credentials/
+!credentials/.gitignore
