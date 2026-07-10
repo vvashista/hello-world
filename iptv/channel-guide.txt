@@ -1,0 +1,53 @@
+NEWS TV — Channel Guide
+=======================
+
+Hindi News (101–199)
+--------------------
+  101  Aaj Tak
+  102  ABP News
+  103  NDTV India
+  104  DD News
+  105  Zee News
+  106  Republic Bharat
+  107  TV9 Bharatvarsh
+  108  News18 India
+  109  News Nation
+  110  India TV
+  111  Times Now Navbharat
+  112  Bharat Samachar
+  113  Good News Today
+  114  Sudarshan News
+  115  News 24
+  116  Sansad TV
+
+English News (201–299)
+----------------------
+  201  Al Jazeera English
+  202  France 24 English
+  203  DW English
+  204  BBC News
+  205  Sky News
+  206  Reuters
+  207  NDTV 24x7
+  208  ABC News Australia
+  209  CBS News 24/7
+  210  Fox News
+  211  Euronews English
+  212  CGTN
+  213  TRT World
+  214  WION
+  215  Times Now
+  216  Republic TV
+  217  Mirror Now
+  218  Bloomberg TV
+  219  CNBC
+  220  NHK World
+
+VLC shortcuts
+-------------
+  Ctrl+L     Open playlist sidebar
+  PgUp/PgDn  Previous / next channel
+  Up/Down    Fine channel step
+  F          Fullscreen
+
+Launch: ./scripts/news-tv.sh

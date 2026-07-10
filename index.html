@@ -60,9 +60,14 @@
 <body>
   <div class="wrap">
     <h1>IPTV News for VLC</h1>
-    <p class="subtitle">Curated English and Hindi news channel playlists — open in VLC for an IPTV-style live TV experience.</p>
+    <p class="subtitle">Curated English and Hindi news channels with numbered guides, grouped playlists, and an interactive navigator for VLC.</p>
 
     <div class="grid">
+      <div class="card">
+        <h2>Interactive Navigator</h2>
+        <p>Pick channels by number or name, then launch VLC with the full playlist ready for PgUp/PgDn zapping.</p>
+        <a class="btn" href="guide.html">Open Channel Guide</a>
+      </div>
       <div class="card">
         <h2>English News</h2>
         <p>International and Indian English news channels including BBC, Al Jazeera, NDTV 24x7, WION, and more.</p>
@@ -90,10 +95,10 @@
         <li>Use <strong>Up/Down</strong> or <strong>PgUp/PgDn</strong> to switch channels like live TV.</li>
       </ol>
       <p>From the command line:</p>
-      <pre>git clone &lt;this-repo&gt;
-cd hello-world
-./scripts/watch-news.sh hindi
-./scripts/watch-news.sh english --channel 2</pre>
+      <pre>./scripts/news-tv.sh                 # Interactive menu (recommended)
+./scripts/news-tv.sh --lang hindi --channel 101
+./scripts/news-tv.sh --search bbc
+./scripts/news-tv.sh --list</pre>
     </div>
 
     <div class="card" style="margin-top: 1rem;">

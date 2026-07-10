@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News TV — Channel Guide</title>
+  <style>
+    :root {
+      --bg: #0b1018;
+      --panel: #141d2b;
+      --card: #1a2436;
+      --accent: #ff6b35;
+      --accent-2: #3dd6c6;
+      --text: #edf2f8;
+      --muted: #8fa3bf;
+      --border: #2a3850;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #172033, var(--bg) 55%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+    h1 { margin: 0 0 0.35rem; font-size: 2rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.5rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      align-items: center;
+    }
+    input[type="search"] {
+      flex: 1 1 240px;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding: 0.65rem 1rem;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #111;
+      font-weight: 600;
+    }
+    .section { margin-top: 1.5rem; }
+    .section h2 {
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      margin: 0 0 0.75rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.85rem;
+    }
+    .channel {
+      display: flex;
+      gap: 0.85rem;
+      align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .channel:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .num {
+      min-width: 2.6rem;
+      height: 2.6rem;
+      border-radius: 8px;
+      background: #0f1624;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: var(--accent-2);
+      font-size: 0.9rem;
+    }
+    .logo {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #0f1624;
+    }
+    .meta strong { display: block; font-size: 0.98rem; }
+    .meta span { color: var(--muted); font-size: 0.82rem; }
+    .shortcuts, .note {
+      margin-top: 1.5rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    code {
+      background: #0f1624;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      color: var(--text);
+    }
+    .empty { color: var(--muted); padding: 2rem 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>News TV Channel Guide</h1>
+    <p class="subtitle">Search by name or number, then click a channel to open it in VLC.</p>
+
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search channels (e.g. 101, BBC, Aaj Tak)..." autofocus>
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="hindi">Hindi</button>
+      <button class="filter-btn" data-filter="english">English</button>
+    </div>
+
+    <div id="sections"></div>
+    <div id="empty" class="empty" hidden>No channels match your search.</div>
+
+    <div class="shortcuts">
+      <strong>VLC navigation shortcuts</strong><br>
+      <code>Ctrl+L</code> playlist sidebar (grouped) ·
+      <code>PgUp/PgDn</code> change channel ·
+      <code>F</code> fullscreen
+    </div>
+
+    <div class="note">
+      Clicking a channel opens the stream URL directly in VLC. For full channel-zapping,
+      run <code>./scripts/news-tv.sh</code> and pick a channel — it loads the full playlist
+      with your selection first.
+    </div>
+  </div>
+
+  <script>
+    let catalog = { hindi: [], english: [] };
+    let filter = "all";
+    let query = "";
+
+    async function loadCatalog() {
+      const res = await fetch("iptv/channels.json");
+      catalog = await res.json();
+      render();
+    }
+
+    function vlcUrl(url) {
+      return `vlc://${url}`;
+    }
+
+    function matches(ch) {
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      if (q === String(ch.number)) return true;
+      if (String(ch.number).startsWith(q)) return true;
+      return ch.label.toLowerCase().includes(q);
+    }
+
+    function channelsFor(lang) {
+      if (lang === "hindi") return catalog.hindi || [];
+      if (lang === "english") return catalog.english || [];
+      return [...(catalog.hindi || []), ...(catalog.english || [])];
+    }
+
+    function renderSection(title, channels) {
+      const visible = channels.filter(matches);
+      if (!visible.length) return "";
+
+      const cards = visible.map(ch => `
+        <a class="channel" href="${vlcUrl(ch.url)}" title="Open in VLC">
+          <div class="num">${ch.number}</div>
+          ${ch.logo ? `<img class="logo" src="${ch.logo}" alt="" loading="lazy">` : ""}
+          <div class="meta">
+            <strong>${ch.label}</strong>
+            <span>${ch.language}</span>
+          </div>
+        </a>
+      `).join("");
+
+      return `<section class="section"><h2>${title}</h2><div class="grid">${cards}</div></section>`;
+    }
+
+    function render() {
+      const root = document.getElementById("sections");
+      let html = "";
+
+      if (filter === "all" || filter === "hindi") {
+        html += renderSection("Hindi News · 101–199", catalog.hindi || []);
+      }
+      if (filter === "all" || filter === "english") {
+        html += renderSection("English News · 201–299", catalog.english || []);
+      }
+
+      root.innerHTML = html;
+      const hasResults = root.textContent.trim().length > 0;
+      document.getElementById("empty").hidden = hasResults;
+    }
+
+    document.getElementById("search").addEventListener("input", (e) => {
+      query = e.target.value;
+      render();
+    });
+
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        filter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    loadCatalog().catch(() => {
+      document.getElementById("sections").innerHTML =
+        '<p class="empty">Run <code>python3 scripts/build-playlists.py</code> to generate channel data.</p>';
+    });
+  </script>
+</body>
+</html>

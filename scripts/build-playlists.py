@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Build curated Hindi and English news M3U playlists from iptv-org sources."""
 
+from __future__ import annotations
+
+import json
 import re
 import sys
 import urllib.request
@@ -9,7 +12,6 @@ from pathlib import Path
 IPTV_ORG_HIN = "https://iptv-org.github.io/iptv/languages/hin.m3u"
 IPTV_ORG_ENG = "https://iptv-org.github.io/iptv/languages/eng.m3u"
 
-# Curated channels by tvg-id (preferred) with display name fallback patterns.
 HINDI_CHANNELS = [
     ("AajTak.in@HD", "Aaj Tak"),
     ("ABPNews.in@SD", "ABP News"),
@@ -54,6 +56,9 @@ ENGLISH_CHANNELS = [
     ("NHKWorldJapan.jp@SD", "NHK World"),
 ]
 
+HINDI_BASE = 101
+ENGLISH_BASE = 201
+
 
 def fetch_m3u(url: str) -> str:
     with urllib.request.urlopen(url, timeout=60) as response:
@@ -81,11 +86,13 @@ def parse_m3u(content: str) -> list[dict]:
         i += 1
 
         tvg_id_match = re.search(r'tvg-id="([^"]+)"', info)
+        logo_match = re.search(r'tvg-logo="([^"]+)"', info)
         channel_name = info.rsplit(",", 1)[-1] if "," in info else ""
         entries.append(
             {
                 "tvg_id": tvg_id_match.group(1) if tvg_id_match else "",
                 "name": channel_name,
+                "logo": logo_match.group(1) if logo_match else "",
                 "info": info,
                 "extras": extras,
                 "url": url,
@@ -104,12 +111,49 @@ def find_entry(entries: list[dict], tvg_id: str, label: str) -> dict | None:
     return None
 
 
-def build_playlist(title: str, group: str, channel_specs: list[tuple[str, str]], entries: list[dict]) -> str:
-    lines = [
-        '#EXTM3U x-tvg-url="https://iptv-org.github.io/epg/guides.xml"',
-        f"#PLAYLIST:{title}",
-    ]
+def quality_suffix(name: str) -> str:
+    match = re.search(r"\((\d+p|Not 24/7|Geo-blocked)[^)]*\)", name, re.I)
+    return match.group(0) if match else ""
+
+
+def build_extinf(entry: dict, *, number: int, label: str, group: str, language: str) -> str:
+    suffix = quality_suffix(entry["name"])
+    flags = ""
+    if suffix:
+        flags = f" {suffix}"
+    display = f"{number:03d} · {label}{flags}"
+
+    info = entry["info"]
+    info = re.sub(r'tvg-chno="[^"]*"', "", info)
+    info = re.sub(r'group-title="[^"]*"', f'group-title="{group}"', info)
+    if 'tvg-language="' not in info:
+        info = info.replace("#EXTINF:-1", f'#EXTINF:-1 tvg-language="{language}"', 1)
+    else:
+        info = re.sub(r'tvg-language="[^"]*"', f'tvg-language="{language}"', info)
+
+    if 'tvg-chno="' not in info:
+        info = info.replace("#EXTINF:-1", f'#EXTINF:-1 tvg-chno="{number}"', 1)
+    else:
+        info = re.sub(r'tvg-chno="[^"]*"', f'tvg-chno="{number}"', info)
+
+    if 'tvg-name="' not in info:
+        info = info.replace("#EXTINF:-1", f'#EXTINF:-1 tvg-name="{label}"', 1)
+
+    info = re.sub(r",[^,]+$", f",{display}", info)
+    return info
+
+
+def collect_channels(
+    channel_specs: list[tuple[str, str]],
+    entries: list[dict],
+    *,
+    base_number: int,
+    group: str,
+    language: str,
+) -> list[dict]:
+    channels: list[dict] = []
     seen_urls: set[str] = set()
+    number = base_number
 
     for tvg_id, label in channel_specs:
         entry = find_entry(entries, tvg_id, label)
@@ -120,13 +164,69 @@ def build_playlist(title: str, group: str, channel_specs: list[tuple[str, str]],
             continue
         seen_urls.add(entry["url"])
 
-        info = re.sub(r'group-title="[^"]*"', f'group-title="{group}"', entry["info"])
-        lines.append(info)
-        lines.extend(entry["extras"])
-        lines.append(entry["url"])
-        print(f"  + {label}: {entry['name']}", file=sys.stderr)
+        extinf = build_extinf(entry, number=number, label=label, group=group, language=language)
+        channels.append(
+            {
+                "number": number,
+                "label": label,
+                "group": group,
+                "language": language,
+                "display": extinf.rsplit(",", 1)[-1],
+                "logo": entry["logo"],
+                "url": entry["url"],
+                "extinf": extinf,
+                "extras": entry["extras"],
+            }
+        )
+        print(f"  + {number:03d} {label}: {entry['name']}", file=sys.stderr)
+        number += 1
 
+    return channels
+
+
+def render_playlist(title: str, channels: list[dict], *, grouped: bool = False) -> str:
+    lines = [
+        '#EXTM3U x-tvg-url="https://iptv-org.github.io/epg/guides.xml"',
+        f"#PLAYLIST:{title}",
+    ]
+    current_group = None
+    for channel in channels:
+        if grouped and channel["group"] != current_group:
+            current_group = channel["group"]
+            lines.append(f"#EXTGRP:{current_group}")
+        lines.append(channel["extinf"])
+        lines.extend(channel["extras"])
+        lines.append(channel["url"])
     return "\n".join(lines) + "\n"
+
+
+def write_channel_map(path: Path, hindi: list[dict], english: list[dict]) -> None:
+    lines = [
+        "NEWS TV — Channel Guide",
+        "=======================",
+        "",
+        "Hindi News (101–199)",
+        "--------------------",
+    ]
+    for ch in hindi:
+        lines.append(f"  {ch['number']:03d}  {ch['label']}")
+    lines.extend(["", "English News (201–299)", "----------------------"])
+    for ch in english:
+        lines.append(f"  {ch['number']:03d}  {ch['label']}")
+    lines.extend(
+        [
+            "",
+            "VLC shortcuts",
+            "-------------",
+            "  Ctrl+L     Open playlist sidebar",
+            "  PgUp/PgDn  Previous / next channel",
+            "  Up/Down    Fine channel step",
+            "  F          Fullscreen",
+            "",
+            "Launch: ./scripts/news-tv.sh",
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -137,28 +237,40 @@ def main() -> None:
     print("Fetching Hindi channels...", file=sys.stderr)
     hin_entries = parse_m3u(fetch_m3u(IPTV_ORG_HIN))
     print("Fetching English channels...", file=sys.stderr)
-
     eng_entries = parse_m3u(fetch_m3u(IPTV_ORG_ENG))
 
     print("\nHindi news:", file=sys.stderr)
-    hindi = build_playlist("Hindi News Channels", "Hindi News", HINDI_CHANNELS, hin_entries)
-
+    hindi = collect_channels(
+        HINDI_CHANNELS, hin_entries, base_number=HINDI_BASE, group="Hindi News", language="Hindi"
+    )
     print("\nEnglish news:", file=sys.stderr)
-    english = build_playlist("English News Channels", "English News", ENGLISH_CHANNELS, eng_entries)
+    english = collect_channels(
+        ENGLISH_CHANNELS, eng_entries, base_number=ENGLISH_BASE, group="English News", language="English"
+    )
 
-    (out_dir / "hindi-news.m3u").write_text(hindi, encoding="utf-8")
-    (out_dir / "english-news.m3u").write_text(english, encoding="utf-8")
+    (out_dir / "hindi-news.m3u").write_text(
+        render_playlist("Hindi News Channels", hindi), encoding="utf-8"
+    )
+    (out_dir / "english-news.m3u").write_text(
+        render_playlist("English News Channels", english), encoding="utf-8"
+    )
+    (out_dir / "all-news.m3u").write_text(
+        render_playlist("All News Channels", hindi + english, grouped=True), encoding="utf-8"
+    )
 
-    combined_lines = hindi.splitlines()[:2]
-    for block in (hindi, english):
-        for line in block.splitlines():
-            if line.startswith("#EXTINF") or line.startswith("#EXTVLCOPT") or (
-                line.startswith("http") and line.strip()
-            ):
-                if line not in combined_lines:
-                    combined_lines.append(line)
+    catalog = {
+        "hindi": [
+            {k: ch[k] for k in ("number", "label", "group", "language", "display", "logo", "url")}
+            for ch in hindi
+        ],
+        "english": [
+            {k: ch[k] for k in ("number", "label", "group", "language", "display", "logo", "url")}
+            for ch in english
+        ],
+    }
+    (out_dir / "channels.json").write_text(json.dumps(catalog, indent=2), encoding="utf-8")
+    write_channel_map(out_dir / "channel-guide.txt", hindi, english)
 
-    (out_dir / "all-news.m3u").write_text("\n".join(combined_lines) + "\n", encoding="utf-8")
     print(f"\nWrote playlists to {out_dir}", file=sys.stderr)
 
 

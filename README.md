@@ -2,32 +2,61 @@
 
 Curated **English** and **Hindi** news channel playlists for an IPTV-like live TV experience in [VLC Media Player](https://www.videolan.org/vlc/).
 
+## Navigate channels
+
+### Interactive navigator (recommended)
+
+```bash
+./scripts/news-tv.sh
+```
+
+This opens a menu where you can:
+
+- Choose **Hindi**, **English**, or **All** news packs
+- Tune by **channel number** (`101`, `205`) or **name** (`aaj`, `bbc`)
+- Launch VLC with the full playlist and your pick loaded first
+
+Quick jumps:
+
+```bash
+./scripts/news-tv.sh --lang hindi --channel 101   # Aaj Tak
+./scripts/news-tv.sh --search bbc                 # BBC News
+./scripts/news-tv.sh --list                       # Print channel guide
+```
+
+### Channel numbers
+
+| Range | Language |
+|-------|----------|
+| 101–199 | Hindi news |
+| 201–299 | English news |
+
+See [`iptv/channel-guide.txt`](iptv/channel-guide.txt) or the [web channel guide](guide.html).
+
+### VLC controls while watching
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+L` | Open playlist sidebar (grouped by language) |
+| `PgUp` / `PgDn` | Previous / next channel |
+| `Up` / `Down` | Step through playlist |
+| `F` | Fullscreen |
+
 ## Playlists
 
 | Playlist | File | Description |
 |----------|------|-------------|
 | English News | [`iptv/english-news.m3u`](iptv/english-news.m3u) | International & Indian English news |
 | Hindi News | [`iptv/hindi-news.m3u`](iptv/hindi-news.m3u) | Major Hindi news channels |
-| All News | [`iptv/all-news.m3u`](iptv/all-news.m3u) | Combined English + Hindi |
+| All News | [`iptv/all-news.m3u`](iptv/all-news.m3u) | Combined, grouped with `#EXTGRP` |
 
-## Quick start
-
-### Option 1: VLC GUI
+## Quick start (manual)
 
 1. Install VLC from [videolan.org](https://www.videolan.org/vlc/)
-2. **Media → Open File** and select a playlist (e.g. `iptv/hindi-news.m3u`)
-3. **View → Playlist** (`Ctrl+L` / `Cmd+L`) to browse channels
-4. Use **Up/Down** or **PgUp/PgDn** to switch channels
+2. Run `./scripts/news-tv.sh` or open a playlist via **Media → Open File**
+3. Press `Ctrl+L` to browse grouped channels
 
-### Option 2: Command line
-
-```bash
-./scripts/watch-news.sh              # English news (default)
-./scripts/watch-news.sh hindi        # Hindi news
-./scripts/watch-news.sh all          # All news channels
-./scripts/watch-news.sh hindi --channel 3
-./scripts/watch-news.sh --list       # List all channels
-```
+`./scripts/watch-news.sh` is an alias for the interactive navigator.
 
 ## Included channels
 
@@ -47,14 +76,14 @@ Curated **English** and **Hindi** news channel playlists for an IPTV-like live T
 
 ## Refresh playlists
 
-Streams are pulled from the community-maintained [iptv-org/iptv](https://github.com/iptv-org/iptv) project. To update local playlists:
-
 ```bash
 python3 scripts/build-playlists.py
 ```
+
+Regenerates M3U playlists, `channels.json`, and `channel-guide.txt`.
 
 ## Notes
 
 - These are **free-to-air public streams** — availability varies by region and may change over time.
 - Some channels may be geo-blocked or marked `[Not 24/7]`.
-- VLC groups channels under **English News** and **Hindi News** in the playlist sidebar.
+- The combined playlist uses VLC `#EXTGRP` tags so Hindi and English appear as separate groups in the playlist tree.
