@@ -1,37 +1,60 @@
-## Welcome to GitHub Pages
+# IPTV News Channels for VLC
 
-You can use the [editor on GitHub](https://github.com/vvashista/hello-world/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+Curated **English** and **Hindi** news channel playlists for an IPTV-like live TV experience in [VLC Media Player](https://www.videolan.org/vlc/).
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Playlists
 
-### Markdown
+| Playlist | File | Description |
+|----------|------|-------------|
+| English News | [`iptv/english-news.m3u`](iptv/english-news.m3u) | International & Indian English news |
+| Hindi News | [`iptv/hindi-news.m3u`](iptv/hindi-news.m3u) | Major Hindi news channels |
+| All News | [`iptv/all-news.m3u`](iptv/all-news.m3u) | Combined English + Hindi |
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Quick start
 
-```markdown
-Syntax highlighted code block
+### Option 1: VLC GUI
 
-# Header 1
-## Header 2
-### Header 3
+1. Install VLC from [videolan.org](https://www.videolan.org/vlc/)
+2. **Media → Open File** and select a playlist (e.g. `iptv/hindi-news.m3u`)
+3. **View → Playlist** (`Ctrl+L` / `Cmd+L`) to browse channels
+4. Use **Up/Down** or **PgUp/PgDn** to switch channels
 
-- Bulleted
-- List
+### Option 2: Command line
 
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+```bash
+./scripts/watch-news.sh              # English news (default)
+./scripts/watch-news.sh hindi        # Hindi news
+./scripts/watch-news.sh all          # All news channels
+./scripts/watch-news.sh hindi --channel 3
+./scripts/watch-news.sh --list       # List all channels
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+## Included channels
 
-### Jekyll Themes
+### English news
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/vvashista/hello-world/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+- Al Jazeera English, BBC News, France 24 English, DW English
+- Sky News, Reuters, Euronews, CGTN, TRT World, NHK World
+- NDTV 24x7, WION, Times Now, Republic TV, Mirror Now
+- ABC News Australia, CBS News 24/7, Fox News, Bloomberg TV, CNBC
 
-### Support or Contact
+### Hindi news
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+- Aaj Tak, ABP News, NDTV India, DD News, Zee News
+- Republic Bharat, TV9 Bharatvarsh, News18 India, News Nation
+- India TV, Times Now Navbharat, Bharat Samachar, Good News Today
+- Sudarshan News, News 24, Sansad TV
+
+## Refresh playlists
+
+Streams are pulled from the community-maintained [iptv-org/iptv](https://github.com/iptv-org/iptv) project. To update local playlists:
+
+```bash
+python3 scripts/build-playlists.py
+```
+
+## Notes
+
+- These are **free-to-air public streams** — availability varies by region and may change over time.
+- Some channels may be geo-blocked or marked `[Not 24/7]`.
+- VLC groups channels under **English News** and **Hindi News** in the playlist sidebar.
